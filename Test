@@ -106,7 +106,7 @@
             color: #606060;
         }
         #video-container {
-            margin-bottom: 30px;
+            margin-top: 30px;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -124,8 +124,6 @@
     </style>
 </head>
 <body>
-    <div id="video-container"></div>
-
     <h1>YouTube Video Suche</h1>
     <div id="search-container">
         <input type="text" id="search-input" placeholder="Suche nach YouTube Videos..." autofocus>
@@ -142,6 +140,8 @@
         </div>
         <div id="results-container"></div>
     </div>
+    
+    <div id="video-container"></div>
 
     <script>
         const API_KEY = "AIzaSyBYa4e9uRx4lM9u8lY2Pu_0u3kL63o4Yks";
@@ -151,12 +151,14 @@
             direction: 'desc'
         };
         
+        // Initialisierung
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('search-button').addEventListener('click', searchVideos);
             document.getElementById('search-input').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') searchVideos();
             });
-
+            
+            // Sortier-Header klickbar machen
             document.querySelectorAll('.sortable-header').forEach(header => {
                 header.addEventListener('click', () => {
                     const field = header.dataset.sort;
@@ -182,10 +184,12 @@
             try {
                 showLoading(true);
                 
+                // Zuerst Videos suchen (max. 100 Ergebnisse)
                 let allItems = [];
                 let nextPageToken = '';
                 
-                for (let i = 0; i < 2; i++) {
+                // Mehrere API-Aufrufe für 100 Ergebnisse
+                for (let i = 0; i < 2; i++) { // 2x50 = 100 Ergebnisse
                     const searchResponse = await fetch(
                         `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&q=${encodeURIComponent(query)}&key=${API_KEY}&type=video${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`
                     );
@@ -195,6 +199,7 @@
                     if (!nextPageToken) break;
                 }
                 
+                // Video-IDs für Detailabfrage sammeln (max. 50 pro Aufruf)
                 const videoIds = allItems.map(item => item.id.videoId);
                 let videoDetails = [];
                 
@@ -234,16 +239,19 @@
                 item.className = 'video-item';
                 item.onclick = () => loadVideo(video.id.videoId);
                 
+                // Dauer formatieren
                 let duration = '--';
                 if (video.details?.contentDetails?.duration) {
                     duration = formatDuration(video.details.contentDetails.duration);
                 }
                 
+                // Aufrufzahlen formatieren
                 let viewCount = '--';
                 if (video.details?.statistics?.viewCount) {
                     viewCount = parseInt(video.details.statistics.viewCount).toLocaleString('de-DE');
                 }
                 
+                // Upload-Datum formatieren
                 let uploadDate = '--';
                 if (video.details?.snippet?.publishedAt) {
                     uploadDate = formatDate(video.details.snippet.publishedAt);
@@ -337,4 +345,20 @@
         }
 
         function loadVideo(videoId) {
-            document.getElementById('video-container').inner
+            document.getElementById('video-container').innerHTML = `
+                <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen></iframe>
+            `;
+        }
+
+        function showLoading(show) {
+            const container = document.getElementById('results-container');
+            if (show) {
+                container.innerHTML = '<div class="loading">Suche läuft... Bitte warten</div>';
+            }
+        }
+    </script>
+</body>
+</html>
